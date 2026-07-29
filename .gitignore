@@ -1,0 +1,4 @@
+vendor/
+*.gz
+*.gem
+Gemfile.lock
