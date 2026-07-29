@@ -22,7 +22,7 @@ require "digest/keccak"
 ALCHEMY_URL     = "https://eth-mainnet.g.alchemy.com/v2/alch_PhpVkmsabZhYV69otj1rF"
 COINGECKO_URL   = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
 CHAIN_ID        = 1  # Ethereum mainnet
-VERSION         = "0.1.3"
+VERSION         = "0.1.4"
 
 # ── JSON-RPC ────────────────────────────────────────────────────────────────
 
