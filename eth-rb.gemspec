@@ -1,6 +1,6 @@
 Gem::Specification.new do |spec|
   spec.name          = "eth-rb"
-  spec.version       = "0.1.5"
+  spec.version       = "0.1.6"
   spec.authors       = ["Khalid Shaikh"]
   spec.email         = ["k@iai.lol"]
 
@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
 
   spec.required_ruby_version = ">= 2.5.0"
 
-  spec.files         = Dir["lib/**/*.rb"]
+  spec.files         = Dir["lib/**/*.rb"] + Dir["exe/*"]
   spec.bindir        = "exe"
   spec.executables   = ["eth.rb"]
 
