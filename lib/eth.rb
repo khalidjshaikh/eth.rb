@@ -6,6 +6,7 @@
 # Usage:
 #   ./eth.rb                               — show latest block number
 #   ./eth.rb <address>                     — show ETH balance of <address>
+#   ./eth.rb <private_key>                 — derive public key + address, show its balance
 #   ./eth.rb --price                       — show current ETH/USD price
 #   ./eth.rb --genkey or -g                — generate a new private key + address
 #   ./eth.rb --pubkey <key>                — derive public key + address from <key>
@@ -24,7 +25,7 @@ require "digest/keccak"
 ALCHEMY_URL     = "https://eth-mainnet.g.alchemy.com/v2/alch_PhpVkmsabZhYV69otj1rF"
 COINGECKO_URL   = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
 CHAIN_ID        = 1  # Ethereum mainnet
-VERSION         = "0.1.7"
+VERSION         = "0.1.8"
 
 # ── JSON-RPC ────────────────────────────────────────────────────────────────
 
@@ -314,6 +315,22 @@ def show_block_number
   puts "Hex: #{hex_block}"
 end
 
+# True if str is a 64-hex-digit private key (0x prefix optional)
+def private_key?(str)
+  normalize_hex(str).match?(/\A[0-9a-fA-F]{64}\z/)
+end
+
+# Derive the public key and address from a private key, then show the balance
+def show_balance_from_key(priv_hex)
+  pub_hex = "0x#{private_key_to_pubkey(priv_hex).unpack1('H*')}"
+  addr    = "0x#{private_key_to_address(priv_hex).unpack1('H*')}"
+
+  puts "Public Key: #{pub_hex}"
+  puts "Address:    #{addr}"
+  puts ""
+  show_balance(addr)
+end
+
 def show_balance(address)
   hex_wei = rpc_call("eth_getBalance", [address, "latest"])
   wei     = hex_wei.to_i(16)
@@ -387,7 +404,11 @@ def run_cli(args)
   elsif args[0] == "--send" || args[0] == "send"
     cmd_send(args[1..])
   else
-    show_balance(args[0])
+    if private_key?(args[0])
+      show_balance_from_key(args[0])
+    else
+      show_balance(args[0])
+    end
   end
 end
 

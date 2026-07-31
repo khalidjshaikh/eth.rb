@@ -27,6 +27,7 @@ gem install eth-rb
 ```
 eth.rb                               — show latest block number
 eth.rb <address>                     — show ETH balance of <address>
+eth.rb <private_key>                 — derive public key + address, show balance
 eth.rb --price                       — show current ETH/USD price
 eth.rb --genkey or -g                — generate a new private key + address
 eth.rb --pubkey <key>                — derive public key + address from <key>
