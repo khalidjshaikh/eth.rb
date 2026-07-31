@@ -7,9 +7,11 @@
 #   ./eth.rb                               — show latest block number
 #   ./eth.rb <address>                     — show ETH balance of <address>
 #   ./eth.rb --price                       — show current ETH/USD price
+#   ./eth.rb --genkey or -g                — generate a new private key + address
+#   ./eth.rb --pubkey <key>                — derive public key + address from <key>
 #   ./eth.rb --version or -v               — show version
-#   ./eth.rb send <key> <to> <amount>      — send ETH (amount in ETH)
-#   ./eth.rb send <key> <to> \$<amount>    — send ETH (amount in USD, converted at current price)
+#   ./eth.rb --send <key> <to> <amount>    — send ETH (amount in ETH)
+#   ./eth.rb --send <key> <to> \$<amount>  — send ETH (amount in USD, converted at current price)
 #   ./eth.rb --help                        — show this usage info
 
 require "net/http"
@@ -144,10 +146,50 @@ def private_key_to_address(priv_hex)
   hash.byteslice(12, 20)
 end
 
+# Derive the uncompressed public key (04 || x || y, 64 bytes) from a
+# private key hex string (with or without 0x)
+def private_key_to_pubkey(priv_hex)
+  priv_int  = normalize_hex(priv_hex).to_i(16)
+  pub_point = GROUP.generator.multiply_by_scalar(priv_int)
+
+  pad32 = ->(b) { b.bytesize >= 32 ? b : "\x00" * (32 - b.bytesize) + b }
+  "\x04" + pad32.call(to_big_endian(pub_point.x)) + pad32.call(to_big_endian(pub_point.y))
+end
+
 def normalize_hex(str)
   hex = str.start_with?("0x") || str.start_with?("0X") ? str[2..] : str
   hex = "0#{hex}" if hex.bytesize.odd?
   hex
+end
+
+# Generate a random private key: a scalar in [1, n-1] where n is the
+# order of the secp256k1 curve group
+def generate_private_key
+  SecureRandom.random_number(GROUP.order - 1) + 1
+end
+
+def show_new_key
+  priv     = generate_private_key
+  priv_hex = "0x%064x" % priv
+  addr     = "0x#{private_key_to_address(priv_hex).unpack1('H*')}"
+  puts "Private Key: #{priv_hex}"
+  puts "Address:     #{addr}"
+end
+
+def cmd_pubkey(args)
+  if args.empty?
+    puts "Usage: ./eth.rb --pubkey <private_key_hex>"
+    exit 1
+  end
+
+  priv_hex = normalize_hex(args[0])
+  priv     = priv_hex.to_i(16)
+  pub_hex  = "0x#{private_key_to_pubkey(args[0]).unpack1('H*')}"
+  addr     = "0x#{private_key_to_address(args[0]).unpack1('H*')}"
+
+  puts "Private Key: 0x%064x" % priv
+  puts "Public Key:  #{pub_hex}"
+  puts "Address:     #{addr}"
 end
 
 # ── Transaction signing ─────────────────────────────────────────────────────
@@ -231,7 +273,7 @@ end
 def cmd_send(args)
   # p args
   if args.length < 3
-    puts "Usage: ./eth.rb send <private_key_hex> <to_address> <amount>"
+    puts "Usage: ./eth.rb --send <private_key_hex> <to_address> <amount>"
     puts "  amount: number (ETH) or $number (USD, converted to ETH at current price)"
     exit 1
   end
@@ -323,6 +365,7 @@ def show_version
 end
 
 def print_usage
+  puts "eth.rb v#{VERSION}"
   puts File.read(__FILE__)[/^#\sUsage:.*?(?=\n\n)/m]
 end
 
@@ -333,11 +376,15 @@ def run_cli(args)
     show_block_number
   elsif args[0] == "--price"
     show_price
+  elsif args[0] == "--genkey" || args[0] == "-g"
+    show_new_key
+  elsif args[0] == "--pubkey" || args[0] == "pubkey"
+    cmd_pubkey(args[1..])
   elsif args[0] == "--version" || args[0] == "-v"
     show_version
   elsif args[0] == "--help" || args[0] == "-h"
     print_usage
-  elsif args[0] == "send"
+  elsif args[0] == "--send" || args[0] == "send"
     cmd_send(args[1..])
   else
     show_balance(args[0])
